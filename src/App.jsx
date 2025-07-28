@@ -1,28 +1,26 @@
 import React from 'react';
+import Layout from './components/Layout';
 import Hero from './components/Hero';
-import Features from './components/Features';
-import Testimonials from './components/Testimonials';
-import CTA from './components/CTA';
-import Footer from './components/Footer';
-import './App.css';
+import HowItWorks from './components/HowItWorks';
+import SupportedMarkets from './components/SupportedMarkets';
+import TradingDashboard from './components/TradingDashboard';
+import AIFeatures from './components/AIFeatures';
+import SuccessStories from './components/SuccessStories';
+import JoinWaitlist from './components/JoinWaitlist';
+
+const sectionClass = 'min-h-screen flex flex-col justify-center items-center px-4 max-w-6xl mx-auto w-full py-20 scroll-mt-20';
 
 function App() {
   return (
-    <div className="min-h-screen scroll-smooth">  {/* Removed the bg-gradient */}
-      <div id="hero" className="scroll-mt-0">
-        <Hero />
-      </div>
-      <div id="features">
-        <Features />
-      </div>
-      <div id="testimonials">
-        <Testimonials />
-      </div>
-      <div id="cta">
-        <CTA />
-      </div>
-      <Footer />
-    </div>
+    <Layout>
+      <Hero />
+      <HowItWorks />
+      <SupportedMarkets />
+      <TradingDashboard />
+      <AIFeatures />
+      <SuccessStories />
+      <JoinWaitlist />
+    </Layout>
   );
 }
 
