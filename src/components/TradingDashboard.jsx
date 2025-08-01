@@ -1,24 +1,143 @@
-import React, { useEffect, useState } from 'react';
-import { motion, useAnimation } from 'framer-motion';
-import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldCheck } from 'lucide-react';
-import chartImage from '../assets/chart.png';
+import React, { useEffect, useState, useRef } from 'react';
+import { motion, useAnimation, useMotionValue, useTransform, useInView } from 'framer-motion';
+import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldCheck, Activity, Zap } from 'lucide-react';
 
-// Helper for animated numbers
-function AnimatedNumber({ value, decimals = 2, duration = 1, prefix = '', className = '' }) {
+// Enhanced Animated Number with more effects
+function AnimatedNumber({ value, decimals = 2, duration = 1.5, prefix = '', suffix = '', className = '' }) {
   const [display, setDisplay] = useState(0);
+  const ref = useRef();
+  const inView = useInView(ref);
+
   useEffect(() => {
-    let start = 0;
-    let startTime = null;
-    function animate(ts) {
-      if (!startTime) startTime = ts;
-      const progress = Math.min((ts - startTime) / (duration * 1000), 1);
-      setDisplay(start + (value - start) * progress);
-      if (progress < 1) requestAnimationFrame(animate);
+    if (inView) {
+      let start = 0;
+      let startTime = null;
+      function animate(ts) {
+        if (!startTime) startTime = ts;
+        const progress = Math.min((ts - startTime) / (duration * 1000), 1);
+        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+        setDisplay(start + (value - start) * easeOutQuart);
+        if (progress < 1) requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
     }
-    requestAnimationFrame(animate);
-    // eslint-disable-next-line
-  }, [value]);
-  return <span className={className}>{prefix}{display.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</span>;
+  }, [inView, value, duration]);
+
+  return (
+    <span ref={ref} className={className}>
+      {prefix}{display.toLocaleString(undefined, { 
+        minimumFractionDigits: decimals, 
+        maximumFractionDigits: decimals 
+      })}{suffix}
+    </span>
+  );
+}
+
+// 3D Tilt Card Component
+function TiltCard({ children, className = '', ...props }) {
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e) => {
+    if (!isHovered) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const rotateXValue = (e.clientY - centerY) / (rect.height / 2) * -10;
+    const rotateYValue = (e.clientX - centerX) / (rect.width / 2) * 10;
+    
+    setRotateX(rotateXValue);
+    setRotateY(rotateYValue);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setRotateX(0);
+    setRotateY(0);
+  };
+
+  return (
+    <motion.div
+      className={className}
+      style={{
+        transformStyle: "preserve-3d",
+        perspective: "1000px",
+      }}
+      animate={{
+        rotateX: rotateX,
+        rotateY: rotateY,
+      }}
+      transition={{ type: "spring", stiffness: 100, damping: 10 }}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={handleMouseLeave}
+      {...props}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Glowing Border Component
+function GlowingBorder({ children, className = "", glowColor = "primary" }) {
+  return (
+    <div className={`relative ${className}`}>
+      <motion.div
+        className="absolute -inset-0.5 rounded-2xl opacity-75 blur-sm"
+        style={{
+          background: glowColor === "primary" 
+            ? "linear-gradient(45deg, #00D4FF, #00FF88, #00D4FF)" 
+            : "linear-gradient(45deg, #FF6B6B, #FFE66D, #FF6B6B)"
+        }}
+        animate={{
+          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+      />
+      <div className="relative bg-background rounded-2xl">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Data Stream Component
+function DataStream({ delay = 0 }) {
+  return (
+    <motion.div
+      className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay }}
+    >
+      {[...Array(5)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-8 bg-gradient-to-b from-primary/60 to-transparent"
+          style={{
+            left: `${20 + i * 15}%`,
+            top: "-10%",
+          }}
+          animate={{
+            y: ["0vh", "120vh"],
+            opacity: [0, 1, 0],
+          }}
+          transition={{
+            duration: 2,
+            delay: delay + i * 0.3,
+            repeat: Infinity,
+            repeatDelay: 2,
+          }}
+        />
+      ))}
+    </motion.div>
+  );
 }
 
 const signals = [
@@ -30,6 +149,7 @@ const signals = [
     strength: 'Strong',
     color: 'text-green-400',
     icon: <TrendingUp className="inline-block text-green-400" size={18} />,
+    confidence: 94,
   },
   {
     symbol: 'AAPL',
@@ -39,6 +159,7 @@ const signals = [
     strength: 'Medium',
     color: 'text-red-400',
     icon: <TrendingDown className="inline-block text-red-400" size={18} />,
+    confidence: 87,
   },
   {
     symbol: 'EUR/USD',
@@ -48,136 +169,349 @@ const signals = [
     strength: 'Strong',
     color: 'text-green-400',
     icon: <TrendingUp className="inline-block text-green-400" size={18} />,
+    confidence: 92,
   },
 ];
 
-export default function TradingDashboard() {
-  // Simulate price changes
+export default function EnhancedTradingDashboard() {
   const [prices, setPrices] = useState([44100, 179.2, 1.0890]);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef();
+  const inView = useInView(ref);
+
+  // Simulate real-time price updates
   useEffect(() => {
     const interval = setInterval(() => {
-      setPrices(prices => prices.map((p, i) => p + (Math.random() - 0.5) * (i === 2 ? 0.002 : i === 1 ? 0.05 : 5)));
-    }, 1200);
+      setPrices(prevPrices => 
+        prevPrices.map((price, i) => {
+          const volatility = i === 2 ? 0.002 : i === 1 ? 0.5 : 10;
+          const change = (Math.random() - 0.5) * volatility;
+          return Math.max(0, price + change);
+        })
+      );
+    }, 1500);
     return () => clearInterval(interval);
   }, []);
 
-  // Chart animation controls
-  const chartControls = useAnimation();
   useEffect(() => {
-    chartControls.start({ pathLength: 1 });
-  }, [chartControls]);
+    if (inView) {
+      setIsVisible(true);
+    }
+  }, [inView]);
 
   return (
-    <section id="dashboard" className="relative py-20 bg-background text-white">
-      <div className="max-w-6xl mx-auto px-4">
+    <section 
+      ref={ref}
+      id="dashboard" 
+      className="relative py-20 bg-gradient-to-b from-background via-background to-gray-900 text-white overflow-hidden"
+    >
+      {/* Animated Background Pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `
+            radial-gradient(circle at 25% 25%, #00D4FF 2px, transparent 2px),
+            radial-gradient(circle at 75% 75%, #00FF88 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px',
+        }} />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 relative z-10">
         <motion.h2
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          className="text-3xl md:text-5xl font-bold mb-4 text-center"
+          transition={{ duration: 0.8 }}
+          className="text-3xl md:text-5xl font-bold mb-4 text-center bg-gradient-to-r from-white via-primary to-secondary bg-clip-text text-transparent"
         >
           See MagicTrader in Action
         </motion.h2>
+        
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.1 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
           className="text-lg md:text-xl text-white/80 mb-12 text-center"
         >
           Real-time AI signals and portfolio management
         </motion.p>
-        {/* Dashboard Mockup */}
-        <div className="bg-[#181c23] rounded-3xl shadow-2xl border-2 border-primary/30 p-0 md:p-8 flex flex-col gap-6">
-          {/* Top Bar */}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 px-6 py-4 border-b border-primary/20 bg-background/80 rounded-t-3xl">
-            <div className="text-lg md:text-2xl font-bold text-primary">
-              Portfolio Value: <AnimatedNumber value={47832.5} decimals={2} prefix="$" className="text-white" />
-              <span className="ml-2 text-green-400 text-base font-semibold">(+<AnimatedNumber value={2341} decimals={0} prefix="$" className="text-green-400" /> today)</span>
-            </div>
-            <div className="text-base md:text-lg font-semibold text-blue-400">
-              <span className="animate-pulse">12 Active Signals</span>
-            </div>
-            <div className="text-base md:text-lg font-semibold text-secondary">
-              AI Accuracy: <AnimatedNumber value={94.2} decimals={1} suffix="%" className="text-secondary" /> This Week
-            </div>
-          </div>
-          {/* Main Panels */}
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Live Signals Panel */}
-            <div className="flex-1 bg-background/80 rounded-2xl border border-primary/20 p-6 flex flex-col gap-4 min-w-[220px]">
-              <div className="font-bold text-lg text-primary mb-2">Live Signals</div>
-              {signals.map((s, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: i * 0.2 }}
-                  className={`flex items-center justify-between p-3 rounded-xl bg-background/90 border-l-4 ${s.type === 'BUY' ? 'border-green-400' : 'border-red-400'} shadow group`}
+
+        {/* Main Dashboard Container */}
+        <GlowingBorder className="relative">
+          <motion.div 
+            className="bg-gradient-to-b from-gray-900/90 to-background/90 backdrop-blur-xl rounded-3xl p-2 md:p-8 relative overflow-hidden"
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1, delay: 0.3 }}
+          >
+            <DataStream />
+            
+            {/* Top Performance Bar */}
+            <motion.div 
+              className="flex flex-col lg:flex-row justify-between items-center gap-4 p-6 mb-6 bg-background/80 rounded-2xl border border-primary/30 relative overflow-hidden"
+              initial={{ y: -50, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+            >
+              {/* Animated Background Pulse */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5"
+                animate={{
+                  opacity: [0.1, 0.3, 0.1],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                }}
+              />
+              
+              <div className="text-center lg:text-left relative z-10">
+                <div className="text-2xl md:text-3xl font-bold text-primary mb-1">
+                  Portfolio Value: <AnimatedNumber value={47832.5} decimals={2} prefix="$" className="text-white" />
+                </div>
+                <motion.div 
+                  className="text-green-400 text-lg font-semibold flex items-center gap-2"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
                 >
-                  <div className="flex items-center gap-2">
-                    {s.icon}
-                    <span className="font-semibold text-white">{s.symbol}</span>
-                    <span className={`ml-2 font-bold ${s.color}`}>{s.type}</span>
+                  <TrendingUp size={20} />
+                  +<AnimatedNumber value={2341} decimals={0} prefix="$" className="text-green-400" /> today
+                </motion.div>
+              </div>
+              
+              <div className="flex flex-col lg:flex-row gap-4 text-center relative z-10">
+                <motion.div 
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 rounded-lg border border-blue-400/30"
+                  whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(59, 130, 246, 0.3)" }}
+                >
+                  <Activity className="text-blue-400" size={20} />
+                  <span className="text-blue-400 font-semibold">
+                    <AnimatedNumber value={12} decimals={0} /> Active Signals
+                  </span>
+                </motion.div>
+                
+                <motion.div 
+                  className="flex items-center gap-2 px-4 py-2 bg-secondary/20 rounded-lg border border-secondary/30"
+                  whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 136, 0.3)" }}
+                >
+                  <Zap className="text-secondary" size={20} />
+                  <span className="text-secondary font-semibold">
+                    AI Accuracy: <AnimatedNumber value={94.2} decimals={1} suffix="%" />
+                  </span>
+                </motion.div>
+              </div>
+            </motion.div>
+
+            {/* Main Dashboard Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Live Signals Panel */}
+              <TiltCard className="lg:col-span-4">
+                <motion.div 
+                  className="bg-background/80 rounded-2xl border border-primary/20 p-6 h-full relative overflow-hidden"
+                  initial={{ x: -100, opacity: 0 }}
+                  whileInView={{ x: 0, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: 0.7 }}
+                >
+                  <DataStream delay={0.5} />
+                  
+                  <div className="flex items-center gap-2 mb-6">
+                    <Activity className="text-primary" size={24} />
+                    <h3 className="font-bold text-xl text-primary">Live Signals</h3>
+                    <motion.div
+                      className="ml-auto w-3 h-3 bg-green-400 rounded-full"
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    />
                   </div>
-                  <div className="text-xs text-white/70">
-                    {s.type === 'BUY' ? <ArrowUpRight className="inline-block text-green-400" size={16} /> : <ArrowDownRight className="inline-block text-red-400" size={16} />}
-                    <span className="ml-1">{s.from} → <span className="font-bold text-white">{prices[i].toLocaleString(undefined, { maximumFractionDigits: i === 2 ? 4 : 2 })}</span></span>
-                    <span className="ml-2 px-2 py-0.5 rounded bg-primary/20 text-primary text-xs font-semibold animate-pulse">{s.strength}</span>
+                  
+                  <div className="space-y-4">
+                    {signals.map((signal, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -50 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: 0.8 + i * 0.2 }}
+                        whileHover={{ 
+                          scale: 1.02, 
+                          boxShadow: signal.type === 'BUY' ? "0 5px 15px rgba(34, 197, 94, 0.2)" : "0 5px 15px rgba(239, 68, 68, 0.2)"
+                        }}
+                        className={`p-4 rounded-xl bg-background/90 border-l-4 ${
+                          signal.type === 'BUY' ? 'border-green-400' : 'border-red-400'
+                        } shadow-lg cursor-pointer relative overflow-hidden`}
+                      >
+                        {/* Confidence Bar */}
+                        <motion.div
+                          className={`absolute bottom-0 left-0 h-1 ${
+                            signal.type === 'BUY' ? 'bg-green-400' : 'bg-red-400'
+                          }`}
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${signal.confidence}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 1, delay: 1 + i * 0.2 }}
+                        />
+                        
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {signal.icon}
+                            <span className="font-semibold text-white">{signal.symbol}</span>
+                            <span className={`font-bold ${signal.color}`}>{signal.type}</span>
+                          </div>
+                          <div className="text-xs text-white/60">
+                            {signal.confidence}% confidence
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-1">
+                            {signal.type === 'BUY' ? 
+                              <ArrowUpRight className="text-green-400" size={16} /> : 
+                              <ArrowDownRight className="text-red-400" size={16} />
+                            }
+                            <span className="text-white/70">
+                              {signal.from} → <span className="font-bold text-white">
+                                {prices[i]?.toLocaleString(undefined, { 
+                                  maximumFractionDigits: i === 2 ? 4 : 2 
+                                })}
+                              </span>
+                            </span>
+                          </div>
+                          <motion.span 
+                            className={`px-2 py-1 rounded text-xs font-semibold ${
+                              signal.strength === 'Strong' ? 'bg-primary/20 text-primary' : 'bg-yellow-500/20 text-yellow-400'
+                            }`}
+                            animate={{ opacity: [0.7, 1, 0.7] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                          >
+                            {signal.strength}
+                          </motion.span>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
                 </motion.div>
-              ))}
+              </TiltCard>
+
+              {/* Chart Area */}
+              <TiltCard className="lg:col-span-5">
+                <motion.div 
+                  className="bg-background/80 rounded-2xl border border-primary/20 p-6 h-full relative overflow-hidden"
+                  initial={{ y: 100, opacity: 0 }}
+                  whileInView={{ y: 0, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: 0.9 }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp className="text-secondary" size={24} />
+                    <h3 className="font-bold text-xl text-secondary">AI Prediction Chart</h3>
+                  </div>
+                  
+                  <div className="h-64 rounded-xl relative overflow-hidden">
+                    <img 
+                      src={require("../assets/chart.png")} 
+                      alt="AI Prediction Chart" 
+                      className="w-full h-full object-cover"
+                    />
+                    
+                    <div className="absolute bottom-2 left-4 text-xs text-white/60">
+                      AI Prediction Accuracy: 94.2%
+                    </div>
+                  </div>
+                </motion.div>
+              </TiltCard>
+
+              {/* Risk Analysis Panel */}
+              <TiltCard className="lg:col-span-3">
+                <motion.div 
+                  className="bg-background/80 rounded-2xl border border-primary/20 p-6 h-full relative overflow-hidden"
+                  initial={{ x: 100, opacity: 0 }}
+                  whileInView={{ x: 0, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: 1.1 }}
+                >
+                  <DataStream delay={1} />
+                  
+                  <div className="flex items-center gap-2 mb-6">
+                    <ShieldCheck className="text-secondary" size={24} />
+                    <h3 className="font-bold text-xl text-secondary">Risk Analysis</h3>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {/* Risk Score */}
+                    <motion.div 
+                      className="p-4 bg-green-500/10 border border-green-400/30 rounded-lg"
+                      whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(34, 197, 94, 0.1)" }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white/80 font-medium">Risk Score</span>
+                        <motion.span 
+                          className="text-green-400 font-bold text-lg"
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          Low (2/10)
+                        </motion.span>
+                      </div>
+                      <motion.div 
+                        className="w-full bg-gray-700 rounded-full h-2"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 1.5 }}
+                      >
+                        <motion.div 
+                          className="bg-green-400 h-2 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: "20%" }}
+                          transition={{ duration: 1, delay: 1.7 }}
+                        />
+                      </motion.div>
+                    </motion.div>
+                    
+                    {/* Position Size */}
+                    <motion.div 
+                      className="p-3 bg-primary/10 border border-primary/30 rounded-lg"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.3 }}
+                    >
+                      <div className="text-white/80 text-sm mb-1">Suggested Position Size</div>
+                      <div className="text-primary font-bold text-lg">
+                        <AnimatedNumber value={2500} prefix="$" decimals={0} />
+                      </div>
+                    </motion.div>
+                    
+                    {/* Stop Loss */}
+                    <motion.div 
+                      className="p-3 bg-red-500/10 border border-red-400/30 rounded-lg"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.5 }}
+                    >
+                      <div className="text-white/80 text-sm mb-1">Stop Loss</div>
+                      <div className="text-red-400 font-bold text-lg">
+                        <AnimatedNumber value={42900} prefix="$" decimals={0} />
+                      </div>
+                    </motion.div>
+                    
+                    <motion.div 
+                      className="text-white/60 text-xs text-center mt-4 p-2 bg-background/50 rounded"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 2 }}
+                    >
+                      AI-powered risk management for every trade
+                    </motion.div>
+                  </div>
+                </motion.div>
+              </TiltCard>
             </div>
-            {/* Chart Area */}
-            <div className="flex-[2] flex flex-col items-center justify-center min-w-[260px]">
-              <div className="w-full h-64 bg-background/80 rounded-2xl border border-primary/20 flex items-center justify-center relative overflow-hidden">
-                {/* Chart Background Image */}
-                <img 
-                  src={chartImage} 
-                  alt="Trading chart background" 
-                  className="absolute inset-0 w-full h-full object-cover opacity-40"
-                />
-                {/* Animated Candlestick Chart (SVG overlay) */}
-                <svg width="95%" height="90%" viewBox="0 0 400 180" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-                  {/* Candles */}
-                  <motion.rect x="20" y="80" width="10" height="60" rx="3" fill="#00FF88" initial={{ height: 0 }} animate={{ height: 60 }} transition={{ duration: 1 }} />
-                  <motion.rect x="40" y="100" width="10" height="40" rx="3" fill="#00D4FF" initial={{ height: 0 }} animate={{ height: 40 }} transition={{ duration: 1.2 }} />
-                  <motion.rect x="60" y="120" width="10" height="20" rx="3" fill="#ff4d4f" initial={{ height: 0 }} animate={{ height: 20 }} transition={{ duration: 1.4 }} />
-                  <motion.rect x="80" y="90" width="10" height="50" rx="3" fill="#00FF88" initial={{ height: 0 }} animate={{ height: 50 }} transition={{ duration: 1.6 }} />
-                  {/* AI Prediction Overlay */}
-                  <motion.path
-                    d="M20 110 Q60 60 120 100 Q180 140 240 80 Q300 40 380 100"
-                    stroke="#00D4FF" strokeWidth="3" fill="none"
-                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2, delay: 0.5 }}
-                  />
-                  {/* Entry/Exit Markers */}
-                  <motion.circle cx="40" cy="100" r="6" fill="#00FF88" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 1.2, delay: 1 }} />
-                  <motion.circle cx="300" cy="40" r="6" fill="#ff4d4f" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 1.2, delay: 1.2 }} />
-                </svg>
-                <div className="absolute bottom-2 left-4 text-xs text-white/60 z-20">AI Prediction Overlay</div>
-              </div>
-            </div>
-            {/* Risk Analysis Panel */}
-            <div className="flex-1 bg-background/80 rounded-2xl border border-primary/20 p-6 flex flex-col gap-4 min-w-[220px]">
-              <div className="font-bold text-lg text-primary mb-2">Risk Analysis</div>
-              <div className="flex items-center gap-2 mb-2">
-                <ShieldCheck className="text-secondary" size={22} />
-                <span className="text-white/80 font-semibold">Risk Score:</span>
-                <span className="text-green-400 font-bold ml-1">Low (2/10)</span>
-              </div>
-              <div className="text-white/80 text-sm mb-1">
-                Suggested Position Size: <span className="text-primary font-semibold">$2,500</span>
-              </div>
-              <div className="text-white/80 text-sm mb-1">
-                Stop Loss: <span className="text-red-400 font-semibold">$42,900</span>
-              </div>
-              <div className="text-white/80 text-xs mt-2">AI-powered risk management for every trade</div>
-            </div>
-          </div>
-        </div>
+          </motion.div>
+        </GlowingBorder>
       </div>
     </section>
   );
-} 
+}
