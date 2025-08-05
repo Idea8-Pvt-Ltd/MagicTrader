@@ -55,7 +55,7 @@ export default function Hero() {
           playsInline
           preload="auto"
         >
-          <source src={require("../assets/brain.mp4")} type="video/mp4" />
+          <source src="/media/brain.mp4" type="video/mp4" />
           <div className="w-full h-full bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-full animate-pulse" />
         </video>
         
