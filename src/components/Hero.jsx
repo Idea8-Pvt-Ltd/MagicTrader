@@ -3,6 +3,8 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, Play, TrendingUp, Zap, Target, Users } from 'lucide-react';
 import FloatingBitcoin from './FloatingBitcoin';
 import FloatingEthereum from './FloatingEthereum';
+// Import the video file
+import brainVideo from '../assets/brain.mp4';
 
 export default function Hero() {
   const videoRef = useRef(null);
@@ -39,7 +41,7 @@ export default function Hero() {
       ref={containerRef}
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black text-white"
     >
-{/* 3D Brain Video Background - Centered */}
+      {/* 3D Brain Video Background - Centered */}
       <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 1, pointerEvents: 'none' }}>
         <video
           ref={videoRef}
@@ -55,8 +57,10 @@ export default function Hero() {
           playsInline
           preload="auto"
         >
-          <source src="/media/brain.mp4" type="video/mp4" />
-          <div className="w-full h-full bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-full animate-pulse" />
+          {/* Use the imported video */}
+          <source src={brainVideo} type="video/mp4" />
+          {/* Fallback for browsers that don't support video */}
+          Your browser does not support the video tag.
         </video>
         
         {/* Video Loading Placeholder */}
@@ -208,7 +212,70 @@ export default function Hero() {
         </motion.div>
 
         {/* Stats Grid */}
-
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 2 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto"
+        >
+          {[
+            { 
+              value: '94.2%', 
+              label: 'AI Accuracy Rate', 
+              icon: Target, 
+              color: 'text-green-400',
+              description: 'Neural network precision'
+            },
+            { 
+              value: '50K+', 
+              label: 'Active Traders', 
+              icon: Users, 
+              color: 'text-blue-400',
+              description: 'Growing AI community'
+            },
+            { 
+              value: '24/7', 
+              label: 'Brain Processing', 
+              icon: Zap, 
+              color: 'text-yellow-400',
+              description: 'Never stops learning'
+            }
+          ].map((stat, index) => (
+            <motion.div
+              key={index}
+              className="group relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 hover:border-cyan-400/30 transition-all"
+              whileHover={{ 
+                scale: 1.05, 
+                y: -10,
+                boxShadow: "0 20px 40px rgba(0, 212, 255, 0.2)"
+              }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.2 + index * 0.2 }}
+            >
+              {/* Animated Background */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-600/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              />
+              
+              <div className="relative z-10 text-center">
+                <stat.icon className={`w-12 h-12 ${stat.color} mb-6 mx-auto group-hover:scale-110 transition-transform duration-300`} />
+                
+                <div className="text-4xl font-black text-white mb-3">
+                  {stat.value}
+                </div>
+                
+                <div className="text-white/80 text-lg font-semibold mb-2">
+                  {stat.label}
+                </div>
+                
+                <div className="text-white/60 text-sm">
+                  {stat.description}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
 
         {/* Scroll Indicator */}
         <motion.div
