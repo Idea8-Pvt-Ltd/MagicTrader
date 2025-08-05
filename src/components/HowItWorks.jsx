@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { BrainCircuit, Zap, Target } from 'lucide-react';
+import mobile from '../assets/mobile.png'; // Make sure to add your image to the assets folder
 
 const steps = [
   {
@@ -36,66 +37,87 @@ const card = {
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="relative py-20 bg-background text-white">
-      <div className="max-w-4xl mx-auto px-4 text-center">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          className="text-3xl md:text-5xl font-bold mb-4"
-        >
-          How MagicTrader AI Works
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.1 }}
-          className="text-lg md:text-xl text-white/80 mb-12"
-        >
-          From market data to profitable signals in milliseconds
-        </motion.p>
-        {/* Steps Grid */}
-        <motion.div
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="relative grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4 items-start z-10"
-        >
-          {steps.map((step, i) => (
-            <motion.div
-              key={i}
-              variants={card}
-              className="relative bg-background border border-primary/20 rounded-2xl p-8 flex flex-col items-center shadow-lg group"
+    <section id="how-it-works" className="relative py-20 bg-background text-white overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Left Column - Image */}
+          <motion.div 
+            className="relative"
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+              <img 
+                src={mobile} 
+                alt="AI Trading Dashboard" 
+                className="w-full h-auto object-cover"
+              />
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/10 to-transparent pointer-events-none" />
+            </div>
+            {/* Decorative elements */}
+            <div className="absolute -z-10 top-1/4 -left-8 w-64 h-64 bg-cyan-400/10 rounded-full mix-blend-screen blur-3xl" />
+            <div className="absolute -z-10 bottom-1/4 -right-8 w-48 h-48 bg-purple-400/10 rounded-full mix-blend-screen blur-3xl" />
+          </motion.div>
+
+          {/* Right Column - Content */}
+          <div className="lg:pl-12">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+              className="text-3xl md:text-5xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-white"
             >
-              <motion.div
-                whileHover={{ scale: 1.12 }}
-                className="mb-4 p-4 rounded-full bg-background/80 shadow-lg group-hover:shadow-primary/40 transition-all drop-shadow-glow-blue animate-pulse"
-                aria-label={step.title + ' icon'}
-              >
-                {step.icon}
-              </motion.div>
-              <h3 className="text-xl font-bold mb-2 text-primary text-center">
-                {step.title}
-              </h3>
-              <p className="text-white/80 text-base text-center">
-                {step.description}
-              </p>
-              {/* Connecting lines/arrows */}
-              {i < steps.length - 1 && (
-                <div className="hidden md:block absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1/2 w-16 h-2 z-20">
-                  <svg width="100%" height="100%" viewBox="0 0 64 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M0 4 Q32 12 64 4" stroke="#00D4FF" strokeWidth="2" fill="none" />
-                    <circle cx="64" cy="4" r="3" fill="#00D4FF" />
-                  </svg>
-                </div>
-              )}
+              How MagicTrader AI Works
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              className="text-lg md:text-xl text-white/80 mb-12"
+            >
+              From market data to profitable signals in milliseconds
+            </motion.p>
+            
+            {/* Steps Grid */}
+            <motion.div
+              variants={container}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true }}
+              className="relative space-y-8"
+            >
+              {steps.map((step, i) => (
+                <motion.div
+                  key={i}
+                  variants={card}
+                  className="relative bg-background/50 backdrop-blur-sm border border-cyan-400/20 rounded-2xl p-6 flex items-start space-x-4 group hover:border-cyan-400/40 transition-all duration-300"
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    className="flex-shrink-0 p-3 rounded-xl bg-gradient-to-br from-cyan-400/10 to-cyan-600/10 group-hover:shadow-glow transition-all"
+                    aria-label={step.title + ' icon'}
+                  >
+                    {step.icon}
+                  </motion.div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-1 text-cyan-300">
+                      {step.title}
+                    </h3>
+                    <p className="text-white/80 text-base">
+                      {step.description}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
             </motion.div>
-          ))}
-        </motion.div>
+          </div>
+        </div>
       </div>
     </section>
   );
-} 
+}
