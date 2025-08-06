@@ -1,318 +1,379 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, Play, TrendingUp, Zap, Target, Users } from 'lucide-react';
-import FloatingBitcoin from './FloatingBitcoin';
-import FloatingEthereum from './FloatingEthereum';
-// Import the video file
-import brainVideo from '../assets/brain.mp4';
+import React, { useState, useEffect, useRef } from 'react';
+import Threads from './Threads';
 
-export default function Hero() {
-  const videoRef = useRef(null);
-  const containerRef = useRef(null);
-  const { scrollY } = useScroll();
-  
-  // Video loading state
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  
-  // Parallax effects
-  const y = useTransform(scrollY, [0, 500], [0, 150]);
-  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
+const ThreadsBackground = () => {
+  const canvasRef = useRef(null);
+  const animationRef = useRef();
+  const threadsRef = useRef([]);
 
-  // Handle video loading
   useEffect(() => {
-    const video = videoRef.current;
-    if (video) {
-      const handleLoadedData = () => {
-        setVideoLoaded(true);
-        video.play().catch(console.error);
-      };
-      
-      video.addEventListener('loadeddata', handleLoadedData);
-      return () => video.removeEventListener('loadeddata', handleLoadedData);
-    }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initialize threads
+    const initThreads = () => {
+      threadsRef.current = [];
+      const threadCount = Math.floor((window.innerWidth * window.innerHeight) / 20000);
+
+      for (let i = 0; i < threadCount; i++) {
+        threadsRef.current.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+          connections: [],
+          opacity: Math.random() * 0.5 + 0.3
+        });
+      }
+    };
+
+    // Animation loop
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const maxDistance = 150;
+
+      // Update threads
+      threadsRef.current.forEach(thread => {
+        thread.x += thread.vx;
+        thread.y += thread.vy;
+
+        // Bounce off edges
+        if (thread.x < 0 || thread.x > canvas.width) thread.vx *= -1;
+        if (thread.y < 0 || thread.y > canvas.height) thread.vy *= -1;
+
+        // Keep within bounds
+        thread.x = Math.max(0, Math.min(canvas.width, thread.x));
+        thread.y = Math.max(0, Math.min(canvas.height, thread.y));
+      });
+
+      // Draw connections
+      threadsRef.current.forEach((thread, i) => {
+        threadsRef.current.slice(i + 1).forEach(otherThread => {
+          const dx = thread.x - otherThread.x;
+          const dy = thread.y - otherThread.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < maxDistance) {
+            const opacity = (1 - distance / maxDistance) * 0.3;
+
+            // Create gradient for thread
+            const gradient = ctx.createLinearGradient(thread.x, thread.y, otherThread.x, otherThread.y);
+            gradient.addColorStop(0, `rgba(6, 182, 212, ${opacity})`);
+            gradient.addColorStop(0.5, `rgba(59, 130, 246, ${opacity})`);
+            gradient.addColorStop(1, `rgba(147, 51, 234, ${opacity})`);
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(thread.x, thread.y);
+            ctx.lineTo(otherThread.x, otherThread.y);
+            ctx.stroke();
+          }
+        });
+      });
+
+      // Draw nodes
+      threadsRef.current.forEach(thread => {
+        const gradient = ctx.createRadialGradient(thread.x, thread.y, 0, thread.x, thread.y, 3);
+        gradient.addColorStop(0, `rgba(6, 182, 212, ${thread.opacity})`);
+        gradient.addColorStop(1, `rgba(6, 182, 212, 0)`);
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(thread.x, thread.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    initThreads();
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
   }, []);
 
-  const scrollToNext = () => {
-    document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
-  };
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full opacity-40"
+      style={{ background: 'transparent' }}
+    />
+  );
+};
+
+const TradingChart = () => {
+  const [chartData, setChartData] = useState([]);
+  const [currentPrice, setCurrentPrice] = useState(42350);
+  const [priceChange, setPriceChange] = useState(2.4);
+
+  useEffect(() => {
+    // Generate initial chart data
+    const initialData = [];
+    let price = 42000;
+    for (let i = 0; i < 50; i++) {
+      price += (Math.random() - 0.5) * 100;
+      initialData.push(price);
+    }
+    setChartData(initialData);
+
+    // Animate chart data and price
+    const interval = setInterval(() => {
+      setChartData(prev => {
+        const newData = [...prev.slice(1)];
+        const lastPrice = newData[newData.length - 1];
+        const newPrice = lastPrice + (Math.random() - 0.5) * 200;
+        newData.push(newPrice);
+        setCurrentPrice(newPrice);
+        setPriceChange(((newPrice - 42000) / 42000) * 100);
+        return newData;
+      });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const pathData = chartData.map((price, index) => {
+    const x = (index / (chartData.length - 1)) * 300;
+    const y = 100 - ((price - 41000) / 2000) * 80;
+    return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+  }).join(' ');
 
   return (
-    <section 
-      ref={containerRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black text-white"
-    >
-      {/* 3D Brain Video Background - Centered */}
-      <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 1, pointerEvents: 'none' }}>
-        <video
-          ref={videoRef}
-          className="h-[70vh] w-auto object-contain"
-          style={{
-            filter: videoLoaded ? 'none' : 'blur(20px)',
-            transition: 'filter 1s ease-in-out',
-            maxWidth: '50vw',
-          }}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-        >
-          {/* Use the imported video */}
-          <source src={brainVideo} type="video/mp4" />
-          {/* Fallback for browsers that don't support video */}
-          Your browser does not support the video tag.
-        </video>
-        
-        {/* Video Loading Placeholder */}
-        {!videoLoaded && (
-          <div className="w-96 h-96 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-full animate-pulse" />
-        )}
+    <div className="relative">
+      <svg width="300" height="100" className="opacity-60">
+        <defs>
+          <linearGradient id="chartGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.4" />
+          </linearGradient>
+        </defs>
+        <path
+          d={pathData}
+          fill="none"
+          stroke="url(#chartGradient)"
+          strokeWidth="2"
+          className="animate-pulse"
+        />
+      </svg>
+      <div className="absolute top-2 right-2 text-right">
+        <div className="text-lg font-bold text-white">
+          ${currentPrice.toLocaleString()}
+        </div>
+        <div className={`text-sm font-medium ${priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+        </div>
       </div>
+    </div>
+  );
+};
 
-      {/* Floating Crypto Logos */}
-      <FloatingBitcoin top={15} left={10} size={120} opacity={1} duration={30} />
-      <FloatingBitcoin top={70} left={85} size={80} opacity={1} duration={40} rotate={45} />
-      <FloatingEthereum top={20} left={80} size={100} opacity={1} duration={35} />
-      <FloatingEthereum top={75} left={15} size={60} opacity={1} duration={45} rotate={30} />
-      
-      {/* Enhanced Gradient Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/60 to-black/95" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/70" />
+const FloatingCard = ({ children, className = "", delay = 0 }) => (
+  <div
+    className={`bg-gray-900/20 backdrop-blur-md border border-cyan-500/20 rounded-xl p-4 shadow-xl hover:shadow-2xl transition-all duration-300 hover:bg-gray-900/30 hover:border-cyan-400/30 hover:scale-105 ${className}`}
+    style={{
+      animation: `float 6s ease-in-out infinite`,
+      animationDelay: `${delay}s`,
+      background: 'linear-gradient(135deg, rgba(31, 41, 55, 0.1) 0%, rgba(17, 24, 39, 0.2) 100%)'
+    }}
+  >
+    {children}
+  </div>
+);
 
-      {/* Hero Content - Centered with Higher Z-Index */}
-      <motion.div
-        className="relative z-30 text-center px-6 max-w-5xl mx-auto"
-        style={{ y, opacity }}
-      >
-        {/* Status Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="inline-flex items-center gap-3 px-6 py-3 bg-white/10 backdrop-blur-xl border border-cyan-400/30 rounded-full mb-8 mt-2"
-        >
-          <motion.div
-            className="w-3 h-3 bg-green-400 rounded-full"
-            animate={{ 
-              scale: [1, 1.2, 1], 
-              opacity: [1, 0.7, 1] 
-            }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity 
-            }}
-          />
-          <span className="text-white font-bold">
-            AI Neural Network • <span className="text-cyan-400">Processing Live Data</span>
-          </span>
-        </motion.div>
+export default function Hero() {
+  const [isVisible, setIsVisible] = useState(false);
 
-        {/* Main Heading */}
-        <motion.h1
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.7 }}
-          className="text-5xl md:text-7xl lg:text-8xl font-black mb-8 leading-tight"
-        >
-          <motion.span 
-            className="block text-white mb-4"
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 1 }}
-          >
-            Think Like AI
-          </motion.span>
-          <motion.span 
-            className="block bg-gradient-to-r from-cyan-400 via-blue-500 to-green-400 bg-clip-text text-transparent"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 1.2 }}
-            style={{
-              backgroundSize: '200% 200%',
-            }}
-          >
-            Trade Like Pro
-          </motion.span>
-        </motion.h1>
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
-        {/* Enhanced Subheading with Increased Weight */}
-        <motion.p
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.4 }}
-          className="text-xl md:text-2xl lg:text-3xl text-white/95 mb-4 max-w-4xl mx-auto leading-relaxed font-semibold"
-        >
-          Our AI processes millions of market data points in real-time,
-          <br className="hidden md:block" />
-          just like neural networks in the human brain.
-        </motion.p>
+  return (
+    <>
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { 
+            transform: translateY(0px) rotateX(0deg) rotateY(0deg); 
+          }
+          33% { 
+            transform: translateY(-8px) rotateX(2deg) rotateY(-1deg); 
+          }
+          66% { 
+            transform: translateY(-12px) rotateX(-1deg) rotateY(2deg); 
+          }
+        }
+        @keyframes glow {
+          0%, 100% { 
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3), 0 0 40px rgba(6, 182, 212, 0.1); 
+          }
+          50% { 
+            box-shadow: 0 0 40px rgba(6, 182, 212, 0.6), 0 0 80px rgba(6, 182, 212, 0.2); 
+          }
+        }
+        @keyframes pulse-glow {
+          0%, 100% { 
+            box-shadow: 0 0 5px rgba(6, 182, 212, 0.5); 
+          }
+          50% { 
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.8), 0 0 30px rgba(6, 182, 212, 0.4); 
+          }
+        }
+        .glow-animation {
+          animation: glow 2s ease-in-out infinite;
+        }
+        .pulse-glow {
+          animation: pulse-glow 1.5s ease-in-out infinite;
+        }
+      `}</style>
 
-        {/* Highlighted Accuracy Statement */}
-        <motion.p
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 1.6 }}
-          className="text-2xl md:text-3xl lg:text-4xl mb-16 font-bold"
-        >
-          <span className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
-            Experience 94.2% accurate trading signals.
-          </span>
-        </motion.p>
+      <section id="hero" className="relative min-h-screen overflow-hidden" style={{ background: '#0a0a12' }}>
+        {/* Animated Threads Background */}
+        {/* Wavy Threads as full Hero background */}
+        <div className='mt-48' style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+          <Threads />
+        </div>
 
-        {/* CTA Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.8 }}
-          className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20"
-        >
-          {/* Primary CTA */}
-          <motion.button
-            className="group relative px-10 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xl rounded-2xl overflow-hidden shadow-2xl min-w-[250px]"
-            whileHover={{ 
-              scale: 1.05,
-              boxShadow: "0 25px 50px rgba(0, 212, 255, 0.4)"
-            }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-500"
-              initial={{ x: "100%" }}
-              whileHover={{ x: "0%" }}
-              transition={{ duration: 0.4 }}
-            />
-            <span className="relative z-10 flex items-center justify-center gap-3">
-              Start AI Trading
-              <motion.div
-                animate={{ x: [0, 5, 0] }}
-                transition={{ 
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              >
-                <ArrowRight size={24} />
-              </motion.div>
-            </span>
-          </motion.button>
+        {/* Floating Elements */}
+        {/* <div className="absolute inset-0 pointer-events-none">
+          <FloatingCard className="absolute top-20 left-10 w-48" delay={0}>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-400 rounded-full pulse-glow"></div>
+              <span className="text-white text-sm font-medium">AI Signal: BUY</span>
+            </div>
+            <div className="text-cyan-400 font-bold mt-1 text-lg">ETH/USD</div>
+            <div className="text-green-400 text-xs mt-1">Confidence: 94.7%</div>
+          </FloatingCard>
 
-          {/* Secondary CTA */}
-          <motion.button
-            className="group flex items-center gap-3 px-10 py-5 text-white/90 border-2 border-white/30 hover:border-cyan-400/50 rounded-2xl transition-all text-xl font-semibold min-w-[250px] backdrop-blur-sm"
-            whileHover={{ 
-              scale: 1.05,
-              backgroundColor: "rgba(0, 212, 255, 0.1)",
-            }}
-            whileTap={{ scale: 0.95 }}
-            onClick={scrollToNext}
-          >
-            <Play size={24} />
-            Watch AI Demo
-          </motion.button>
-        </motion.div>
+          <FloatingCard className="absolute top-32 right-16 w-56" delay={1}>
+            <TradingChart />
+          </FloatingCard>
 
-        {/* Stats Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 2 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto"
-        >
-          {[
-            { 
-              value: '94.2%', 
-              label: 'AI Accuracy Rate', 
-              icon: Target, 
-              color: 'text-green-400',
-              description: 'Neural network precision'
-            },
-            { 
-              value: '50K+', 
-              label: 'Active Traders', 
-              icon: Users, 
-              color: 'text-blue-400',
-              description: 'Growing AI community'
-            },
-            { 
-              value: '24/7', 
-              label: 'Brain Processing', 
-              icon: Zap, 
-              color: 'text-yellow-400',
-              description: 'Never stops learning'
-            }
-          ].map((stat, index) => (
-            <motion.div
-              key={index}
-              className="group relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 hover:border-cyan-400/30 transition-all"
-              whileHover={{ 
-                scale: 1.05, 
-                y: -10,
-                boxShadow: "0 20px 40px rgba(0, 212, 255, 0.2)"
-              }}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 2.2 + index * 0.2 }}
-            >
-              {/* Animated Background */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-600/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-              />
-              
-              <div className="relative z-10 text-center">
-                <stat.icon className={`w-12 h-12 ${stat.color} mb-6 mx-auto group-hover:scale-110 transition-transform duration-300`} />
-                
-                <div className="text-4xl font-black text-white mb-3">
-                  {stat.value}
+          <FloatingCard className="absolute bottom-32 left-20 w-48" delay={2}>
+            <div className="text-white text-sm font-medium">Portfolio Growth</div>
+            <div className="text-green-400 font-bold text-2xl">+127.3%</div>
+            <div className="text-gray-300 text-xs">Past 30 days</div>
+            <div className="flex items-center gap-1 mt-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span className="text-xs text-green-400">Trending Up</span>
+            </div>
+          </FloatingCard>
+
+          <FloatingCard className="absolute bottom-40 right-10 w-56" delay={1.5}>
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="text-white text-sm font-medium">Risk Score</div>
+                <div className="text-yellow-400 font-bold text-lg">Medium</div>
+                <div className="text-gray-300 text-xs">Dynamic AI Analysis</div>
+              </div>
+              <div className="w-14 h-14 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                <span className="text-black font-bold text-lg">7.2</span>
+              </div>
+            </div>
+          </FloatingCard>
+        </div> */}
+
+        {/* Main Content */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 py-20 sm:py-32">
+          <div className="text-center">
+            {/* Main Headline */}
+            <div className={`transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white leading-tight">
+                Trade Smarter with{' '}
+                <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+                  AI Magic
+                </span>
+              </h1>
+            </div>
+
+            {/* Subtitle */}
+            <div className={`transform transition-all duration-1000 delay-300 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <p className="mt-6 text-xl sm:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+                Harness the power of advanced AI algorithms to predict market movements,
+                optimize your portfolio, and maximize profits across
+                <span className="text-cyan-400 font-semibold"> Crypto</span>,
+                <span className="text-blue-400 font-semibold"> Forex</span>, and
+                <span className="text-purple-400 font-semibold"> Stocks</span>.
+              </p>
+            </div>
+
+            {/* Stats Row */}
+            <div className={`transform transition-all duration-1000 delay-500 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <div className="mt-8 flex flex-wrap justify-center gap-8 sm:gap-12">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-cyan-400">94.7%</div>
+                  <div className="text-sm text-gray-400">Accuracy Rate</div>
                 </div>
-                
-                <div className="text-white/80 text-lg font-semibold mb-2">
-                  {stat.label}
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-400">$2.4M+</div>
+                  <div className="text-sm text-gray-400">Profits Generated</div>
                 </div>
-                
-                <div className="text-white/60 text-sm">
-                  {stat.description}
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-purple-400">15K+</div>
+                  <div className="text-sm text-gray-400">Active Traders</div>
                 </div>
               </div>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* Scroll Indicator */}
-        <motion.div
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 3 }}
-        >
-          <motion.div
-            className="flex flex-col items-center gap-2 cursor-pointer group"
-            onClick={scrollToNext}
-            whileHover={{ scale: 1.1 }}
-            animate={{ y: [0, 10, 0] }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          >
-            <div className="w-6 h-10 border-2 border-white/30 group-hover:border-cyan-400/70 rounded-full flex justify-center transition-colors">
-              <motion.div
-                className="w-1 h-3 bg-white/50 group-hover:bg-cyan-400/80 rounded-full mt-2 transition-colors"
-                animate={{ y: [0, 12, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
             </div>
-            <span className="text-white/50 group-hover:text-cyan-400/80 text-xs font-medium transition-colors">
-              Explore AI Features
-            </span>
-          </motion.div>
-        </motion.div>
-      </motion.div>
 
-      {/* Additional atmospheric elements */}
-      <div className="absolute top-20 left-20 w-2 h-2 bg-cyan-400/60 rounded-full animate-pulse hidden lg:block" />
-      <div className="absolute bottom-32 right-32 w-3 h-3 bg-blue-400/40 rounded-full animate-pulse hidden lg:block" />
-      <div className="absolute top-1/3 right-16 w-1 h-1 bg-green-400/80 rounded-full animate-pulse hidden lg:block" />
-    </section>
+            {/* CTA Buttons */}
+            <div className={`transform transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 glow-animation">
+                  Start Trading Now
+                </button>
+                <button className="bg-transparent border-2 border-gray-600 hover:border-cyan-400 text-white font-semibold py-4 px-8 rounded-xl hover:bg-gray-800/50 transition-all duration-300 backdrop-blur-sm">
+                  Watch Demo
+                </button>
+              </div>
+            </div>
+
+            {/* Trust Indicators */}
+            <div className={`transform transition-all duration-1000 delay-900 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <div className="mt-12 flex flex-wrap justify-center items-center gap-8 opacity-60">
+                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Bank-grade Security
+                </div>
+                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  24/7 AI Monitoring
+                </div>
+                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  No Hidden Fees
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+          <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </div>
+      </section>
+    </>
   );
 }

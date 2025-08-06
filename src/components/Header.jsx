@@ -11,14 +11,14 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-background/40 shadow-sm transition-all">
+    <header className="fixed top-0 left-0 w-full z-50 bg-[#111827]/95 backdrop-blur-md border-b border-[#222a36]/70 shadow-lg transition-all">
       <nav className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3 h-16">
         {/* Logo/Wordmark */}
-        <a href="#hero" className="text-2xl font-extrabold tracking-tight text-primary select-none">
+        <a href="#hero" className="text-2xl font-extrabold tracking-tight text-white select-none">
           MagicTrader
         </a>
         {/* Desktop Nav */}
-        <ul className="hidden md:flex items-center gap-8 text-white font-medium">
+        <ul className="hidden md:flex items-center gap-8 text-gray-100 font-medium">
           {navLinks.map(link => (
             <li key={link.name}>
               <a href={link.href} className="hover:text-primary transition-colors duration-200">
@@ -29,13 +29,13 @@ export default function Header() {
         </ul>
         {/* CTA Button (Desktop) */}
         <div className="hidden md:block">
-          <a href="#waitlist" className="bg-primary text-background font-semibold py-2 px-6 rounded-lg shadow hover:bg-cyan-400 transition-all">
+          <a href="#waitlist" className="bg-[#222a36] text-cyan-300 font-semibold py-2 px-6 rounded-lg shadow hover:bg-cyan-900/80 hover:text-white transition-all">
             Join Waitlist
           </a>
         </div>
         {/* Hamburger (Mobile) */}
         <button
-          className="md:hidden text-white p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+          className="md:hidden text-gray-100 p-2 rounded focus:outline-none focus:ring-2 focus:ring-cyan-700"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
         >

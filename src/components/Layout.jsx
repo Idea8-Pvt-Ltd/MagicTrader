@@ -1,6 +1,5 @@
 import React from 'react';
 import Header from './Header';
-import Footer from './Footer';
 
 export default function Layout({ children }) {
   return (
@@ -9,7 +8,6 @@ export default function Layout({ children }) {
       <main className="flex-1 pt-16"> {/* pt-16 for fixed header offset */}
         {children}
       </main>
-      <Footer />
     </div>
   );
 } 
